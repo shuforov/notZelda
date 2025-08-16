@@ -1,0 +1,56 @@
+# CMake build folders
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+/cmake_install.cmake
+/Makefile
+/install_manifest.txt
+
+# Ninja build files
+/build.ninja
+/.ninja_deps
+/.ninja_log
+
+# Compiler database
+/compile_commands.json
+
+# Object and binary files
+*.o
+*.obj
+*.lo
+*.la
+*.a
+*.lib
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+
+# Editor/IDE stuff
+*~
+.#*
+*.swp
+*.swo
+*.swn
+*.bak
+*.tmp
+*.orig
+*.rej
+
+# Emacs specific
+.projectile
+.project
+.dir-locals.el
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# Cache or temp folders
+.cache/
+.idea/
+.vscode/
