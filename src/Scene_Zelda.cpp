@@ -109,6 +109,19 @@ void Scene_Zelda::sMovement() {
   // TODO:
   // Implement all player movement functionality here based on
   // the player's input component variables
+  auto &playerTransform = m_player->get<CTransform>();
+  auto &playerInputs = m_player->get<CInput>();
+  playerTransform.velocity = vec2(0, 0);
+  if (playerInputs.up) {
+    playerTransform.velocity.y = -1;
+  } else if (playerInputs.down) {
+    playerTransform.velocity.y = 1;
+  } else if (playerInputs.left) {
+    playerTransform.velocity.x = -1;
+  } else if (playerInputs.right) {
+    playerTransform.velocity.x = 1;
+  }
+  playerTransform.pos += playerTransform.velocity;
 }
 
 void Scene_Zelda::sGUI() {
