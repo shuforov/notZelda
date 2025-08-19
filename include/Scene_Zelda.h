@@ -69,7 +69,10 @@ protected:
 
     vec2 getRoomXY(const vec2 &pos);
 
-public:
+    vec2 gridToMidPixel(float gridX, float gridY,
+                        std::shared_ptr<Entity> entity);
+
+  public:
 
     Scene_Zelda(GameEngine *gameEngine, std::string &levelPath);
 

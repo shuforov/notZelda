@@ -58,14 +58,31 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
   }
   std::string configName;
   std::string entityName;
+  vec2 roomPos;
   vec2 gridPos;
+  int tileMovement;
+  int tileBlockMovement;
   while (fileInput >> configName) {
     if (configName == "Player") {
       fileInput >> m_playerConfig.X >> m_playerConfig.Y >> m_playerConfig.CX >>
-	m_playerConfig.CY >> m_playerConfig.SPEED >> m_playerConfig.HEALTH;
+          m_playerConfig.CY >> m_playerConfig.SPEED >> m_playerConfig.HEALTH;
+    } else if (configName == "Tile") {
+      fileInput >> entityName >> roomPos.x >> roomPos.y >> gridPos.x >> gridPos.y >> tileMovement >> tileBlockMovement;
+      std::cout << "RoomPosition: " << roomPos.x << ", " << roomPos.y
+                << std::endl;
+      std::cout << "GridPosition: " << gridPos.x << ", " << gridPos.y
+                << std::endl;
+      std::cout << "Movement: " << tileMovement << std::endl;
+      std::cout << "Vision: " << tileBlockMovement << std::endl;
+      auto tileNode = m_entityManager.addEntity("Tile");
+      tileNode->add<CAnimation>(m_game->assets().getAnimation(entityName), true);
+      vec2 tilePosition = gridToMidPixel(gridPos.x, gridPos.y, tileNode);
+      std::cout << "Grid position tile: " << gridPos.x << ", " << gridPos.y << std::endl;
+      std::cout << "Position tile: " << tilePosition.x << ", " << tilePosition.y << std::endl;
+      tileNode->add<CTransform>();
+      tileNode->get<CTransform>().pos = tilePosition;
     }
   }
-
   spawnPlayer();
 }
 
@@ -487,4 +504,21 @@ vec2 Scene_Zelda::getRoomXY(const vec2 &pos) {
   if (pos.y < 0)
     roomY--;
   return {(float)roomX, (float)roomY};
+}
+
+vec2 Scene_Zelda::gridToMidPixel(float gridX, float gridY,
+                                std::shared_ptr<Entity> entity) {
+  // This function takes in a grid (x,y) position and an Entity
+  //       Return a Vec2 indicating where the CENTER position of the Entity
+  //       should be You must use the Entity's Animation size to position it
+  //       correctly The size of the grid width and height is stored in
+  //       m_gridSize.x and m_gridSize.y The bottom-left corner of the Animation
+  //       should aligh with the bottom left of the grid cell
+  sf::Vector2 windowSize = m_game->window().getSize();
+  float positionByGridX = m_gridSize.x * gridX;
+  float positionByGridY = m_gridSize.y * gridY;
+  vec2 spriteSize = entity->get<CAnimation>().animation.getSize();
+  vec2 result = vec2((positionByGridX + spriteSize.x / 2),
+                     (positionByGridY + spriteSize.y / 2));
+  return result;
 }
