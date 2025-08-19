@@ -14,6 +14,7 @@
 #include "../include/Components.h"
 #include "../include/GameEngine.h"
 #include "../include/Scene_Zelda.h"
+#include "../include/Scene_Menu.h"
 
 Scene_Zelda::Scene_Zelda(GameEngine *game, std::string &levelPath)
     : Scene(game), m_levelPath(levelPath) {
@@ -49,6 +50,21 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
   // Load the level file and put all entities in the manager
   // Use the getPosition() function below to convert room-tile coords to game
   // world coords
+  // Reading data in level file here
+  std::ifstream fileInput(fileName);
+  if (!fileInput.is_open()) {
+    std::cerr << "Could not open config file: " << fileName << std::endl;
+    exit(1);
+  }
+  std::string configName;
+  std::string entityName;
+  vec2 gridPos;
+  while (fileInput >> configName) {
+    if (configName == "Player") {
+      fileInput >> m_playerConfig.X >> m_playerConfig.Y >> m_playerConfig.CX >>
+	m_playerConfig.CY >> m_playerConfig.SPEED >> m_playerConfig.HEALTH;
+    }
+  }
 
   spawnPlayer();
 }
@@ -65,11 +81,11 @@ vec2 Scene_Zelda::getPosition(int rx, int ry, int tx, int ty) const {
 void Scene_Zelda::spawnPlayer() {
   auto p = m_entityManager.addEntity("player");
   m_player = p;
-  p->add<CTransform>(vec2(640, 480));
+  p->add<CTransform>(vec2(m_playerConfig.X, m_playerConfig.Y));
   p->add<CAnimation>(m_game->assets().getAnimation("LinkStandDown"), true);
-  p->add<CBoundingBox>(vec2(640, 480), vec2(48, 48), true, false);
+  p->add<CBoundingBox>(vec2(m_playerConfig.X, m_playerConfig.Y), vec2(48, 48), true, false);
   p->add<CDraggable>(); // just to test draggable
-  p->add<CHealth>(7, 3);
+  p->add<CHealth>(m_playerConfig.HEALTH, 3);
 
   // TODO:
   // Implement this function so that it uses the parameters input from the level
@@ -121,7 +137,7 @@ void Scene_Zelda::sMovement() {
   } else if (playerInputs.right) {
     playerTransform.velocity.x = 1;
   }
-  playerTransform.pos += playerTransform.velocity;
+  playerTransform.pos += playerTransform.velocity * m_playerConfig.SPEED;
 }
 
 void Scene_Zelda::sGUI() {
@@ -269,6 +285,7 @@ void Scene_Zelda::onEnd() {
   // Stop the music
   // Play the menu music
   // Use m_game->changeScene(correct params);
+  m_game->changeScene("MENU", std::make_shared<Scene_Menu>(m_game));
 }
 
 // void Scene_Zelda::setPaused(bool pause) {
