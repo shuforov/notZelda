@@ -67,20 +67,17 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
       fileInput >> m_playerConfig.X >> m_playerConfig.Y >> m_playerConfig.CX >>
           m_playerConfig.CY >> m_playerConfig.SPEED >> m_playerConfig.HEALTH;
     } else if (configName == "Tile") {
-      fileInput >> entityName >> roomPos.x >> roomPos.y >> gridPos.x >> gridPos.y >> tileMovement >> tileBlockMovement;
-      std::cout << "RoomPosition: " << roomPos.x << ", " << roomPos.y
-                << std::endl;
-      std::cout << "GridPosition: " << gridPos.x << ", " << gridPos.y
-                << std::endl;
-      std::cout << "Movement: " << tileMovement << std::endl;
-      std::cout << "Vision: " << tileBlockMovement << std::endl;
+      fileInput >> entityName >> roomPos.x >> roomPos.y >> gridPos.x >>
+          gridPos.y >> tileMovement >> tileBlockMovement;
       auto tileNode = m_entityManager.addEntity("Tile");
-      tileNode->add<CAnimation>(m_game->assets().getAnimation(entityName), true);
+      tileNode->add<CAnimation>(m_game->assets().getAnimation(entityName),
+                                true);
       vec2 tilePosition = gridToMidPixel(gridPos.x, gridPos.y, tileNode);
-      std::cout << "Grid position tile: " << gridPos.x << ", " << gridPos.y << std::endl;
-      std::cout << "Position tile: " << tilePosition.x << ", " << tilePosition.y << std::endl;
-      tileNode->add<CTransform>();
-      tileNode->get<CTransform>().pos = tilePosition;
+      Animation tileAnimation = tileNode->get<CAnimation>().animation;
+      tileNode->add<CTransform>(tilePosition);
+      tileNode->add<CBoundingBox>(tileAnimation.getSize(),
+                                  tileAnimation.getSize(), tileMovement,
+                                  tileBlockMovement);
     }
   }
   spawnPlayer();
@@ -367,10 +364,11 @@ void Scene_Zelda::sRender() {
     for (const auto &entity : m_entityManager.getEntities()) {
       if (entity->has<CBoundingBox>()) {
         auto &box = entity->get<CBoundingBox>();
+        auto &entityPosition = entity->get<CTransform>().pos;
         sf::RectangleShape rect;
         rect.setSize(sf::Vector2f(box.size.x - 1, box.size.y - 1));
         rect.setOrigin(sf::Vector2f(box.halfSize.x, box.halfSize.y));
-        rect.setPosition(box.center.x, box.center.y);
+        rect.setPosition(entityPosition.x, entityPosition.y);
         rect.setFillColor(sf::Color(0, 0, 0, 0));
         if (box.blockMove && box.blockVision) {
           rect.setOutlineColor(sf::Color::Black);
