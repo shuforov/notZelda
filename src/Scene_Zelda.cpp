@@ -141,15 +141,32 @@ void Scene_Zelda::sMovement() {
   // the player's input component variables
   auto &playerTransform = m_player->get<CTransform>();
   auto &playerInputs = m_player->get<CInput>();
+  auto &playerAnimation = m_player->get<CAnimation>().animation;
   playerTransform.velocity = vec2(0, 0);
   if (playerInputs.up) {
     playerTransform.velocity.y = -1;
+    if (playerAnimation.getName() != "LinkMoveUp") {
+      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveUp"),
+                                true);
+    }
   } else if (playerInputs.down) {
     playerTransform.velocity.y = 1;
+    if (playerAnimation.getName() != "LinkMoveDown") {
+      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveDown"),
+                                true);
+    }
   } else if (playerInputs.left) {
     playerTransform.velocity.x = -1;
+    if (playerAnimation.getName() != "LinkMoveRight") {
+      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveRight"),
+                                true);
+    }
   } else if (playerInputs.right) {
     playerTransform.velocity.x = 1;
+    if (playerAnimation.getName() != "LinkMoveRight") {
+      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveRight"),
+                                true);
+    }
   }
   playerTransform.pos += playerTransform.velocity * m_playerConfig.SPEED;
 }

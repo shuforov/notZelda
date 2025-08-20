@@ -3,7 +3,7 @@
 
 
 int main() {
-    GameEngine g("assets.txt");
+    GameEngine g("../bin/assets.txt");
     g.run();
 
     return 0;
