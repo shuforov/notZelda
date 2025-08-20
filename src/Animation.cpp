@@ -50,3 +50,15 @@ sf::Sprite &Animation::getSprite() {
     return m_sprite;
 }
 
+void Animation::setFlipped(bool flipped) {
+  sf::IntRect rect = m_sprite.getTextureRect();
+
+  if (flipped && rect.width > 0) {
+    rect.left = rect.left + rect.width;
+    rect.width = -rect.width;
+  } else if (!flipped && rect.width < 0) {
+    rect.left = rect.left + rect.width; // since width is negative
+    rect.width = -rect.width;
+  }
+  m_sprite.setTextureRect(rect);
+}

@@ -161,12 +161,14 @@ void Scene_Zelda::sMovement() {
       m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveRight"),
                                 true);
     }
+    playerAnimation.setFlipped(true);
   } else if (playerInputs.right) {
     playerTransform.velocity.x = 1;
     if (playerAnimation.getName() != "LinkMoveRight") {
       m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveRight"),
                                 true);
     }
+    playerAnimation.setFlipped(false);
   }
   playerTransform.pos += playerTransform.velocity * m_playerConfig.SPEED;
 }
