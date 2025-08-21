@@ -96,6 +96,7 @@ void Scene_Zelda::spawnPlayer() {
   auto p = m_entityManager.addEntity("player");
   m_player = p;
   p->add<CTransform>(vec2(m_playerConfig.X, m_playerConfig.Y));
+  p->get<CTransform>().prevPos = p->get<CTransform>().pos;
   p->add<CAnimation>(m_game->assets().getAnimation("LinkStandDown"), true);
   p->add<CBoundingBox>(vec2(m_playerConfig.X, m_playerConfig.Y), vec2(48, 48), true, false);
   p->add<CDraggable>(); // just to test draggable
@@ -170,6 +171,7 @@ void Scene_Zelda::sMovement() {
     }
     playerAnimation.setFlipped(false);
   }
+  playerTransform.prevPos = playerTransform.pos;
   playerTransform.pos += playerTransform.velocity * m_playerConfig.SPEED;
 }
 
@@ -285,6 +287,25 @@ void Scene_Zelda::sCollision() {
   // Implement black tile collisions / 'teleporting'
   // You may want to use helper functions for these behaviors or this function
   // will get long
+  vec2 &playerPosition = m_player->get<CTransform>().pos;
+  vec2 &playerPrevPosition = m_player->get<CTransform>().prevPos;
+  for (auto &entityNode : m_entityManager.getEntities("Tile")) {
+    vec2 overlap = m_worldPhysics.GetOverlap(m_player, entityNode);
+    vec2 overlapPrev = m_worldPhysics.GetPreviousOverlap(m_player, entityNode);
+    bool entityBBBlockMove = entityNode->get<CBoundingBox>().blockMove;
+    if (overlap != vec2(0, 0)) {
+      if (overlap.x > 0 && overlap.y > 0) {
+	if (entityBBBlockMove) {
+          if (overlapPrev.x < overlap.x) {
+            playerPosition.x = playerPrevPosition.x;
+          }
+          if (overlapPrev.y < overlap.y) {
+            playerPosition.y = playerPrevPosition.y;
+          }
+        }
+      }
+    }
+  }
 }
 
 void Scene_Zelda::sAnimation() {
