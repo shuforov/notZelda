@@ -333,6 +333,33 @@ void Scene_Zelda::sCamera() {
   m_game->window().setView(view);
 }
 
+std::string Scene_Zelda::playerMovingToRoomDiraction() {
+  vec2 playerPosition = m_player->get<CTransform>().pos;
+  auto windowSize = m_game->window().getSize();
+  sf::View view = m_game->window().getView();
+  sf::Vector2f viewCenter = view.getCenter();
+  sf::Vector2f size = view.getSize();
+  // viewPosition is top left coordinates of view port
+  vec2 viewPosition =
+      vec2((viewCenter.x - size.x / 2.f), (viewCenter.y - size.y / 2.f));
+  if (playerPosition.x > viewPosition.x + windowSize.x) {
+    // Player moving to right room
+    return "RIGHT";
+  } else if (playerPosition.x < viewPosition.x) {
+    // Player moving to left room
+    return "LEFT";
+  } else if (playerPosition.y > viewPosition.y + windowSize.y) {
+    // Player moving down room
+    return "DOWN";
+  } else if (playerPosition.y < viewPosition.y) {
+    // Player moving up room
+    return "UP";
+  } else {
+    // Player in range of room
+    return "IN_ROOM";
+  }
+}
+
 void Scene_Zelda::onEnd() {
   // TODO
   // When the scene ends, change back to the MENU scene

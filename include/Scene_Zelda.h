@@ -73,6 +73,7 @@ protected:
     vec2 gridToMidPixel(float gridX, float gridY,
                         std::shared_ptr<Entity> entity);
 
+    std::string playerMovingToRoomDiraction();
   public:
 
     Scene_Zelda(GameEngine *gameEngine, std::string &levelPath);
