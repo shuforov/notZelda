@@ -322,11 +322,32 @@ void Scene_Zelda::sCamera() {
 
   // get the current view, which we will modify in the if-statement below
   sf::View view = m_game->window().getView();
-
+  sf::Vector2f viewCenter = view.getCenter();
+  auto windowSize = m_game->window().getSize();
   if (m_follow) {
     // calculate view for player follow camera
   } else {
-    // calculate view for room-based camera
+    if (playerMovingToRoomDiraction() == "UP") {
+      // Switch camera to up room
+      vec2 upRoomCenter = vec2(viewCenter.x, viewCenter.y - windowSize.y);
+      view.setCenter(upRoomCenter.x, upRoomCenter.y);
+    } else if (playerMovingToRoomDiraction() == "DOWN") {
+      // Switch camera to down room
+      vec2 downRoomCenter = vec2(viewCenter.x, viewCenter.y + windowSize.y);
+      view.setCenter(downRoomCenter.x, downRoomCenter.y);
+    } else if (playerMovingToRoomDiraction() == "LEFT") {
+      // Switch camera to left room
+      vec2 leftRoomCenter = vec2(viewCenter.x - windowSize.x, viewCenter.y);
+      view.setCenter(leftRoomCenter.x, leftRoomCenter.y);
+    } else if (playerMovingToRoomDiraction() == "RIGHT") {
+      // Switch camera to right room
+      vec2 rightRoomCenter = vec2(viewCenter.x + windowSize.x, viewCenter.y);
+      std::cout << "view current position: " << view.getCenter().x << ", " << view.getCenter().y << std::endl;
+      view.setCenter(rightRoomCenter.x, rightRoomCenter.y);
+      std::cout << "right room center: " << rightRoomCenter.x << ", "
+                << rightRoomCenter.y << std::endl;
+      std::cout << "view updated position: " << view.getCenter().x << ", " << view.getCenter().y << std::endl;
+    }
   }
 
   // then set the window view
