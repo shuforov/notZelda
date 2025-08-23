@@ -22,6 +22,7 @@ protected:
     bool m_drawCollision = false;
     bool m_drawGrid = false;
     bool m_follow = false;
+    std::string m_playerLookAt = "DOWN";
 
     const vec2 m_gridSize = {64, 64};
     sf::Text m_gridText;
@@ -74,8 +75,8 @@ protected:
                         std::shared_ptr<Entity> entity);
 
     std::string playerMovingToRoomDiraction();
-  public:
 
+  public:
     Scene_Zelda(GameEngine *gameEngine, std::string &levelPath);
 
     void update() override;

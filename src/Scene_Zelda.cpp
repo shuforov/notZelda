@@ -39,6 +39,7 @@ void Scene_Zelda::init(const std::string &levelPath) {
   registerAction(sf::Keyboard::A, "LEFT");
   registerAction(sf::Keyboard::D, "RIGHT");
   registerAction(sf::Keyboard::S, "DOWN");
+  registerAction(sf::Keyboard::Space, "ATTACK");
 
   // TODO: Register the actions required to play the game
 }
@@ -115,6 +116,22 @@ void Scene_Zelda::spawnSword(std::shared_ptr<Entity> entity) {
   // direction
   // - be given a damage value of 1
   // - should play the "Slash" sound
+  const int SPRITE_SIZE = 64;
+  auto swordNode = m_entityManager.addEntity("sword");
+  auto playerPosition = entity->get<CTransform>().pos;
+  swordNode->add<CTransform>(playerPosition);
+  swordNode->add<CBoundingBox>(vec2(SPRITE_SIZE, SPRITE_SIZE), vec2(SPRITE_SIZE, SPRITE_SIZE), false, false);
+  auto &swordTransform = swordNode->get<CTransform>();
+  swordTransform.prevPos = swordTransform.pos;
+  if (m_playerLookAt == "DOWN") {
+    swordTransform.pos.y += SPRITE_SIZE;
+  } else if (m_playerLookAt == "UP") {
+    swordTransform.pos.y -= SPRITE_SIZE;
+  } else if (m_playerLookAt == "RIGHT") {
+    swordTransform.pos.x += SPRITE_SIZE;
+  } else if (m_playerLookAt == "LEFT") {
+    swordTransform.pos.x -= SPRITE_SIZE;
+  }
 }
 
 void Scene_Zelda::update() {
@@ -150,18 +167,21 @@ void Scene_Zelda::sMovement() {
       m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveUp"),
                                 true);
     }
+    m_playerLookAt = "UP";
   } else if (playerInputs.down) {
     playerTransform.velocity.y = 1;
     if (playerAnimation.getName() != "LinkMoveDown") {
       m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveDown"),
                                 true);
     }
+    m_playerLookAt = "DOWN";
   } else if (playerInputs.left) {
     playerTransform.velocity.x = -1;
     if (playerAnimation.getName() != "LinkMoveRight") {
       m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveRight"),
                                 true);
     }
+    m_playerLookAt = "LEFT";
     playerAnimation.setFlipped(true);
   } else if (playerInputs.right) {
     playerTransform.velocity.x = 1;
@@ -169,10 +189,32 @@ void Scene_Zelda::sMovement() {
       m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveRight"),
                                 true);
     }
+    m_playerLookAt = "RIGHT";
     playerAnimation.setFlipped(false);
   }
   playerTransform.prevPos = playerTransform.pos;
   playerTransform.pos += playerTransform.velocity * m_playerConfig.SPEED;
+
+  // Sword movement
+  for (auto &entity : m_entityManager.getEntities("sword")) {
+    if (m_playerLookAt == "DOWN") {
+      entity->get<CTransform>().pos = vec2(
+          playerTransform.pos.x,
+          playerTransform.pos.y + 32); // 32 is half size of sprite size of 64
+    } else if (m_playerLookAt == "UP") {
+      entity->get<CTransform>().pos = vec2(
+          playerTransform.pos.x,
+          playerTransform.pos.y - 32); // 32 is half size of sprite size of 64
+    } else if (m_playerLookAt == "RIGHT") {
+      entity->get<CTransform>().pos =
+          vec2(playerTransform.pos.x + 32,
+               playerTransform.pos.y); // 32 is half size of sprite size of 64
+    } else if (m_playerLookAt == "LEFT") {
+      entity->get<CTransform>().pos =
+          vec2(playerTransform.pos.x - 32,
+               playerTransform.pos.y); // 32 is half size of sprite size of 64
+    }
+  }
 }
 
 void Scene_Zelda::sGUI() {
@@ -252,6 +294,9 @@ void Scene_Zelda::sDoAction(const Action &action) {
       m_player->get<CInput>().right = true;
     } else if (action.name() == "DOWN") {
       m_player->get<CInput>().down = true;
+    } else if (action.name() == "ATTACK") {
+      m_player->get<CInput>().attack = true;
+      spawnSword(m_player);
     }
   } else if (action.type() == "END") {
     if (action.name() == "UP") {
@@ -262,6 +307,8 @@ void Scene_Zelda::sDoAction(const Action &action) {
       m_player->get<CInput>().right = false;
     } else if (action.name() == "DOWN") {
       m_player->get<CInput>().down = false;
+    } else if (action.name() == "ATTACK") {
+      m_player->get<CInput>().attack = false;
     }
   }
 }
