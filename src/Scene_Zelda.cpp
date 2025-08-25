@@ -63,6 +63,8 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
   vec2 gridPos;
   int tileMovement;
   int tileBlockMovement;
+  int maxHealth;
+  int damage;
   while (fileInput >> configName) {
     if (configName == "Player") {
       fileInput >> m_playerConfig.X >> m_playerConfig.Y >> m_playerConfig.CX >>
@@ -79,6 +81,14 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
       tileNode->add<CBoundingBox>(tileAnimation.getSize(),
                                   tileAnimation.getSize(), tileMovement,
                                   tileBlockMovement);
+    } else if (configName == "NPC") {
+      fileInput >> entityName >> roomPos.x >> roomPos.y >> gridPos.x >>
+          gridPos.y >> maxHealth >> damage;
+      auto tileNode = m_entityManager.addEntity("NPC");
+      tileNode->add<CAnimation>(m_game->assets().getAnimation(entityName),
+                                true);
+      vec2 tilePosition = gridToMidPixel(gridPos.x, gridPos.y, tileNode);
+      tileNode->add<CTransform>(tilePosition);
     }
   }
   spawnPlayer();
