@@ -18,20 +18,26 @@ Animation::Animation(std::string name, const sf::Texture &t, size_t frameCount, 
 
 // updates the animation to show the next frame, depending on its speed
 // animation loops when it reaches the end
-void Animation::update() {
-    // add the speed variable to the current frame
-    m_currentFrame++;
+void Animation::update(bool flipped) {
+  // add the speed variable to the current frame
+  if (m_speed == 0 || m_frameCount == 0) {
+    return;
+  }
 
-    // 1) calculate the correct frame of animation to play based on currentFrame and speed
-    // 2) set the texture rectangle properly (see constructor for sample)
-    size_t animationFrame = (m_currentFrame / m_speed) % m_frameCount;
-    m_sprite.setTextureRect(sf::IntRect(int(animationFrame) * int(m_size.x), 0, int(m_size.x), int(m_size.y)));
+  if (hasEnded()) {
+    m_currentFrame = 0;
+  }
+  m_currentFrame++;
+  int animationFrame = (m_currentFrame / m_speed) % m_frameCount;
+  sf::IntRect rectangle(animationFrame * m_size.x, 0, m_size.x, m_size.y);
+  m_sprite.setTextureRect(rectangle);
+  setFlipped(flipped);
 }
 
 bool Animation::hasEnded() const {
-    // detect when animation has ended (last frame waw played) and return true
-    // if (m_speed == 0) return true;
-    return (m_currentFrame / m_speed) % m_frameCount == m_frameCount - 1;
+  // detect when animation has ended (last frame waw played) and return true
+  // if (m_speed == 0) return true;
+  return (m_currentFrame / m_speed) >= m_frameCount;
 }
 
 const vec2 &Animation::getSize() const {

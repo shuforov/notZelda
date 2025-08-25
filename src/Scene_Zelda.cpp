@@ -120,18 +120,43 @@ void Scene_Zelda::spawnSword(std::shared_ptr<Entity> entity) {
   auto swordNode = m_entityManager.addEntity("sword");
   auto playerPosition = entity->get<CTransform>().pos;
   swordNode->add<CTransform>(playerPosition);
-  swordNode->add<CBoundingBox>(vec2(SPRITE_SIZE, SPRITE_SIZE), vec2(SPRITE_SIZE, SPRITE_SIZE), false, false);
+  swordNode->add<CBoundingBox>(vec2(SPRITE_SIZE, SPRITE_SIZE),
+                               vec2(SPRITE_SIZE, SPRITE_SIZE), false, false);
+  swordNode->add<CLifespan>(10, 0);
   auto &swordTransform = swordNode->get<CTransform>();
+  auto &playerAnimation = m_player->get<CAnimation>().animation;
   swordTransform.prevPos = swordTransform.pos;
   if (m_playerLookAt == "DOWN") {
     swordTransform.pos.y += SPRITE_SIZE;
+    if (playerAnimation.getName() != "LinkAtkDown") {
+      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkAtkDown"),
+                                false);
+    }
+    playerAnimation.setFlipped(false);
   } else if (m_playerLookAt == "UP") {
     swordTransform.pos.y -= SPRITE_SIZE;
+    if (playerAnimation.getName() != "LinkAtkUp") {
+      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkAtkUp"),
+                                false);
+    }
+    playerAnimation.setFlipped(false);
   } else if (m_playerLookAt == "RIGHT") {
     swordTransform.pos.x += SPRITE_SIZE;
+    if (playerAnimation.getName() != "LinkAtkRight") {
+      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkAtkRight"),
+                                false);
+    }
+    playerAnimation.setFlipped(false);
   } else if (m_playerLookAt == "LEFT") {
+    playerAnimation.setFlipped(false);
     swordTransform.pos.x -= SPRITE_SIZE;
+    if (playerAnimation.getName() != "LinkAtkRight") {
+      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkAtkRight"),
+                                false);
+    }
+    playerAnimation.setFlipped(true);
   }
+  m_isAttack = true;
 }
 
 void Scene_Zelda::update() {
@@ -161,36 +186,50 @@ void Scene_Zelda::sMovement() {
   auto &playerInputs = m_player->get<CInput>();
   auto &playerAnimation = m_player->get<CAnimation>().animation;
   playerTransform.velocity = vec2(0, 0);
-  if (playerInputs.up) {
-    playerTransform.velocity.y = -1;
-    if (playerAnimation.getName() != "LinkMoveUp") {
-      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveUp"),
-                                true);
+  if (!m_isAttack) {
+    if (playerInputs.up) {
+      playerTransform.velocity.y = -1;
+      if (playerAnimation.getName() != "LinkMoveUp") {
+        m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveUp"),
+                                  true);
+      }
+      m_animationIsFlipped = false;
+      playerAnimation.setFlipped(false);
+      m_playerLookAt = "UP";
+      m_isMoving = true;
+    } else if (playerInputs.down) {
+      playerTransform.velocity.y = 1;
+      if (playerAnimation.getName() != "LinkMoveDown") {
+        m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveDown"),
+                                  true);
+      }
+      m_animationIsFlipped = false;
+      playerAnimation.setFlipped(false);
+      m_playerLookAt = "DOWN";
+      m_isMoving = true;
+    } else if (playerInputs.left) {
+      playerTransform.velocity.x = -1;
+      if (playerAnimation.getName() != "LinkMoveRight") {
+        m_player->add<CAnimation>(
+            m_game->assets().getAnimation("LinkMoveRight"), true);
+      }
+      m_playerLookAt = "LEFT";
+      playerAnimation.setFlipped(true);
+      m_animationIsFlipped = true;
+      m_isMoving = true;
+    } else if (playerInputs.right) {
+      playerTransform.velocity.x = 1;
+      if (playerAnimation.getName() != "LinkMoveRight") {
+        m_player->add<CAnimation>(
+            m_game->assets().getAnimation("LinkMoveRight"), true);
+      }
+      m_playerLookAt = "RIGHT";
+      playerAnimation.setFlipped(false);
+      m_animationIsFlipped = false;
+      m_isMoving = true;
+    } else {
+      m_isMoving = false;
     }
-    m_playerLookAt = "UP";
-  } else if (playerInputs.down) {
-    playerTransform.velocity.y = 1;
-    if (playerAnimation.getName() != "LinkMoveDown") {
-      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveDown"),
-                                true);
-    }
-    m_playerLookAt = "DOWN";
-  } else if (playerInputs.left) {
-    playerTransform.velocity.x = -1;
-    if (playerAnimation.getName() != "LinkMoveRight") {
-      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveRight"),
-                                true);
-    }
-    m_playerLookAt = "LEFT";
-    playerAnimation.setFlipped(true);
-  } else if (playerInputs.right) {
-    playerTransform.velocity.x = 1;
-    if (playerAnimation.getName() != "LinkMoveRight") {
-      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkMoveRight"),
-                                true);
-    }
-    m_playerLookAt = "RIGHT";
-    playerAnimation.setFlipped(false);
   }
   playerTransform.prevPos = playerTransform.pos;
   playerTransform.pos += playerTransform.velocity * m_playerConfig.SPEED;
@@ -323,6 +362,16 @@ void Scene_Zelda::sStatus() {
   // TODO:
   // Implement Lifespan here
   // Implement Invincibility Frames here
+  for (auto &entityNode : m_entityManager.getEntities("sword")) {
+    auto &lifeData = entityNode->get<CLifespan>();
+    if (lifeData.lifespan == lifeData.frameCreated) {
+      swapPlayerAnimationToStand();
+      m_isAttack = false;
+      entityNode->destroy();
+    } else {
+      lifeData.frameCreated++;
+    }
+  }
 }
 
 void Scene_Zelda::sCollision() {
@@ -361,6 +410,52 @@ void Scene_Zelda::sAnimation() {
   // Implement sword animation based on player facing
   // The sword should move if the player changes direction mid swing
   // Implement destruction of entities with non-repeating finished animations
+  auto &playerAnimation = m_player->get<CAnimation>().animation;
+  playerAnimation.update(m_animationIsFlipped);
+  if (playerAnimation.getName() == "LinkAtkDown") {
+    m_isAttack = true;
+  } else if (playerAnimation.getName() == "LinkAtkUp") {
+    m_isAttack = true;
+  } else if (playerAnimation.getName() == "LinkAtkRight") {
+    m_isAttack = true;
+  } else {
+    if (!m_isMoving) {
+      swapPlayerAnimationToStand();
+    }
+  }
+}
+
+void Scene_Zelda::swapPlayerAnimationToStand() {
+  auto &playerAnimation = m_player->get<CAnimation>().animation;
+  if (m_playerLookAt == "UP") {
+    if (playerAnimation.getName() != "LinkStandUp") {
+      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkStandUp"),
+                                true);
+      playerAnimation.setFlipped(false);
+      m_animationIsFlipped = false;
+    }
+  } else if (m_playerLookAt == "DOWN") {
+    if (playerAnimation.getName() != "LinkStandDown") {
+      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkStandDown"),
+                                true);
+      playerAnimation.setFlipped(false);
+      m_animationIsFlipped = false;
+    }
+  } else if (m_playerLookAt == "RIGHT") {
+    if (playerAnimation.getName() != "LinkStandRight") {
+      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkStandRight"),
+                                true);
+      playerAnimation.setFlipped(false);
+      m_animationIsFlipped = false;
+    }
+  } else if (m_playerLookAt == "LEFT") {
+    if (playerAnimation.getName() != "LinkStandRight") {
+      m_player->add<CAnimation>(m_game->assets().getAnimation("LinkStandRight"),
+                                true);
+      playerAnimation.setFlipped(true);
+      m_animationIsFlipped = true;
+    }
+  }
 }
 
 void Scene_Zelda::sCamera() {

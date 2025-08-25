@@ -23,7 +23,7 @@ public:
 
     Animation(std::string name, const sf::Texture &t, size_t frameCount, size_t speed);
 
-    void update();
+    void update(bool flipped);
 
     bool hasEnded() const;
 

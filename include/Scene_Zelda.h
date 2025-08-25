@@ -23,6 +23,9 @@ protected:
     bool m_drawGrid = false;
     bool m_follow = false;
     std::string m_playerLookAt = "DOWN";
+    bool m_animationIsFlipped = false;
+    bool m_isMoving = false;
+    bool m_isAttack = false;
 
     const vec2 m_gridSize = {64, 64};
     sf::Text m_gridText;
@@ -75,6 +78,8 @@ protected:
                         std::shared_ptr<Entity> entity);
 
     std::string playerMovingToRoomDiraction();
+
+    void swapPlayerAnimationToStand();
 
   public:
     Scene_Zelda(GameEngine *gameEngine, std::string &levelPath);
