@@ -65,6 +65,8 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
   int tileBlockMovement;
   int maxHealth;
   int damage;
+  int blockMovementNpc;
+  int blockVisionNpc;
   while (fileInput >> configName) {
     if (configName == "Player") {
       fileInput >> m_playerConfig.X >> m_playerConfig.Y >> m_playerConfig.CX >>
@@ -83,12 +85,17 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
                                   tileBlockMovement);
     } else if (configName == "NPC") {
       fileInput >> entityName >> roomPos.x >> roomPos.y >> gridPos.x >>
-          gridPos.y >> maxHealth >> damage;
+	gridPos.y >> blockMovementNpc >> blockVisionNpc >> maxHealth >> damage;
       auto tileNode = m_entityManager.addEntity("NPC");
       tileNode->add<CAnimation>(m_game->assets().getAnimation(entityName),
                                 true);
       vec2 tilePosition = gridToMidPixel(gridPos.x, gridPos.y, tileNode);
+      Animation tileAnimation = tileNode->get<CAnimation>().animation;
       tileNode->add<CTransform>(tilePosition);
+      tileNode->add<CBoundingBox>(tileAnimation.getSize(),
+                                  tileAnimation.getSize(), tileMovement,
+                                  tileBlockMovement);
+      tileNode->add<CHealth>(maxHealth, maxHealth);
     }
   }
   spawnPlayer();
@@ -408,6 +415,22 @@ void Scene_Zelda::sCollision() {
           if (overlapPrev.y < overlap.y) {
             playerPosition.y = playerPrevPosition.y;
           }
+        }
+      }
+    }
+  }
+
+  for (auto &entityNode : m_entityManager.getEntities("NPC")) {
+    for (auto &swordNode : m_entityManager.getEntities("sword")) {
+      vec2 overlap = m_worldPhysics.GetOverlap(swordNode, entityNode);
+      vec2 overlapPrev =
+          m_worldPhysics.GetPreviousOverlap(swordNode, entityNode);
+      bool entityBBBlockMove = entityNode->get<CBoundingBox>().blockMove;
+      vec2 swordPosition = swordNode->get<CTransform>().pos;
+      vec2 swordPrevPosition = swordNode->get<CTransform>().prevPos;
+      if (overlap != vec2(0, 0)) {
+        if (overlap.x > 0 && overlap.y > 0) {
+          std::cout << "sword collide with npc" << std::endl;
         }
       }
     }
