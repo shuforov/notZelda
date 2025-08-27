@@ -86,16 +86,17 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
     } else if (configName == "NPC") {
       fileInput >> entityName >> roomPos.x >> roomPos.y >> gridPos.x >>
 	gridPos.y >> blockMovementNpc >> blockVisionNpc >> maxHealth >> damage;
-      auto tileNode = m_entityManager.addEntity("NPC");
-      tileNode->add<CAnimation>(m_game->assets().getAnimation(entityName),
+      auto NPCNode = m_entityManager.addEntity("NPC");
+      NPCNode->add<CAnimation>(m_game->assets().getAnimation(entityName),
                                 true);
-      vec2 tilePosition = gridToMidPixel(gridPos.x, gridPos.y, tileNode);
-      Animation tileAnimation = tileNode->get<CAnimation>().animation;
-      tileNode->add<CTransform>(tilePosition);
-      tileNode->add<CBoundingBox>(tileAnimation.getSize(),
+      vec2 NPCPosition = gridToMidPixel(gridPos.x, gridPos.y, NPCNode);
+      Animation tileAnimation = NPCNode->get<CAnimation>().animation;
+      NPCNode->add<CTransform>(NPCPosition);
+      NPCNode->add<CBoundingBox>(tileAnimation.getSize(),
                                   tileAnimation.getSize(), tileMovement,
                                   tileBlockMovement);
-      tileNode->add<CHealth>(maxHealth, maxHealth);
+      NPCNode->add<CHealth>(maxHealth, maxHealth);
+      NPCNode->add<CInvincibility>(0); // 0 is how mouch at current moment npc can be invicnible
     }
   }
   spawnPlayer();
@@ -421,6 +422,7 @@ void Scene_Zelda::sCollision() {
   }
 
   for (auto &entityNode : m_entityManager.getEntities("NPC")) {
+    int &entityNodeInvinc = entityNode->get<CInvincibility>().iframes;
     for (auto &swordNode : m_entityManager.getEntities("sword")) {
       vec2 overlap = m_worldPhysics.GetOverlap(swordNode, entityNode);
       vec2 overlapPrev =
@@ -430,9 +432,16 @@ void Scene_Zelda::sCollision() {
       vec2 swordPrevPosition = swordNode->get<CTransform>().prevPos;
       if (overlap != vec2(0, 0)) {
         if (overlap.x > 0 && overlap.y > 0) {
-          std::cout << "sword collide with npc" << std::endl;
+          if (entityNodeInvinc == 0) {
+            entityNode->get<CHealth>().current -= 1;
+            entityNodeInvinc = 30; // 30 is count of frames
+          }
         }
       }
+    }
+    // counting down invincibility timer till it will be 0 and npc can be attacked by player agen
+    if (entityNodeInvinc > 0) {
+      entityNodeInvinc -= 1;
     }
   }
 }
