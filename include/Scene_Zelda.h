@@ -26,6 +26,7 @@ protected:
     bool m_animationIsFlipped = false;
     bool m_isMoving = false;
     bool m_isAttack = false;
+    sf::Sound attackSound;
 
     const vec2 m_gridSize = {64, 64};
     sf::Text m_gridText;

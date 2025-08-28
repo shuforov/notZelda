@@ -42,6 +42,7 @@ void Scene_Zelda::init(const std::string &levelPath) {
   registerAction(sf::Keyboard::Space, "ATTACK");
 
   // TODO: Register the actions required to play the game
+  attackSound = m_game->assets().getSound("SSwordSlash");
 }
 
 void Scene_Zelda::loadLevel(const std::string &fileName) {
@@ -174,6 +175,7 @@ void Scene_Zelda::spawnSword(std::shared_ptr<Entity> entity) {
     }
     playerAnimation.setFlipped(true);
   }
+  attackSound.play();
   m_isAttack = true;
 }
 
