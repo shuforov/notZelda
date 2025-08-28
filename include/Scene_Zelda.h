@@ -81,6 +81,8 @@ protected:
 
     void swapPlayerAnimationToStand();
 
+    void destroyAnimationCreate(vec2 position);
+
   public:
     Scene_Zelda(GameEngine *gameEngine, std::string &levelPath);
 

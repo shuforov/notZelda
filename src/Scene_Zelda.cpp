@@ -442,15 +442,26 @@ void Scene_Zelda::sCollision() {
     // counting down invincibility timer till it will be 0 and npc can be attacked by player agen
     if (entityNodeInvinc > 0) {
       if (entityNode->get<CHealth>().current == 0) {
+	auto entityNodeTransform = entityNode->get<CTransform>();
         entityNode->destroy();
+	destroyAnimationCreate(entityNodeTransform.pos);
       } else {
         entityNodeInvinc -= 1;
         if (entityNode->get<CHealth>().current == 0) {
           entityNode->destroy();
+          auto entityNodeTransform = entityNode->get<CTransform>();
+          destroyAnimationCreate(entityNodeTransform.pos);
         }
       }
     }
   }
+}
+
+void Scene_Zelda::destroyAnimationCreate(vec2 position) {
+  auto explodeNode = m_entityManager.addEntity("Explosion");
+  explodeNode->add<CAnimation>(m_game->assets().getAnimation("Explosion"),
+                               true);
+  explodeNode->add<CTransform>(position);
 }
 
 void Scene_Zelda::sAnimation() {
@@ -474,6 +485,12 @@ void Scene_Zelda::sAnimation() {
   }
   for (auto &entityNode : m_entityManager.getEntities("NPC")) {
     entityNode->get<CAnimation>().animation.update(false);
+  }
+  for (auto &entityNode : m_entityManager.getEntities("Explosion")) {
+    entityNode->get<CAnimation>().animation.update(false);
+    if (entityNode->get<CAnimation>().animation.hasEnded()) {
+      entityNode->destroy();
+    }
   }
 }
 
