@@ -26,7 +26,12 @@ protected:
     bool m_animationIsFlipped = false;
     bool m_isMoving = false;
     bool m_isAttack = false;
-    sf::Sound attackSound;
+    sf::Sound playerAttackSound;
+    sf::Sound playerHitSound;
+    sf::Sound playerDieSound;
+    sf::Sound playerLowHPSound;
+    sf::Sound npcHitSound;
+    sf::Sound npcDieSound;
 
     const vec2 m_gridSize = {64, 64};
     sf::Text m_gridText;

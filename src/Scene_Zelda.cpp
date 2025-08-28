@@ -42,7 +42,12 @@ void Scene_Zelda::init(const std::string &levelPath) {
   registerAction(sf::Keyboard::Space, "ATTACK");
 
   // TODO: Register the actions required to play the game
-  attackSound = m_game->assets().getSound("SSwordSlash");
+  playerAttackSound = m_game->assets().getSound("SSwordSlash");
+  playerHitSound = m_game->assets().getSound("SLinkDamaged");
+  playerDieSound = m_game->assets().getSound("SLinkDied");
+  playerLowHPSound = m_game->assets().getSound("SLinkLowHP");
+  npcHitSound = m_game->assets().getSound("SEnemyDamaged");
+  npcDieSound = m_game->assets().getSound("SEnemyDied");
 }
 
 void Scene_Zelda::loadLevel(const std::string &fileName) {
@@ -120,8 +125,8 @@ void Scene_Zelda::spawnPlayer() {
   p->add<CAnimation>(m_game->assets().getAnimation("LinkStandDown"), true);
   p->add<CBoundingBox>(vec2(m_playerConfig.X, m_playerConfig.Y), vec2(48, 48), true, false);
   p->add<CDraggable>(); // just to test draggable
-  p->add<CHealth>(m_playerConfig.HEALTH, 3);
-
+  p->add<CHealth>(m_playerConfig.HEALTH, 6);
+  p->add<CInvincibility>(0);
   // TODO:
   // Implement this function so that it uses the parameters input from the level
   // file Those parameters should be stored in the m_playerConfig variable
@@ -175,7 +180,7 @@ void Scene_Zelda::spawnSword(std::shared_ptr<Entity> entity) {
     }
     playerAnimation.setFlipped(true);
   }
-  attackSound.play();
+  playerAttackSound.play();
   m_isAttack = true;
 }
 
@@ -194,6 +199,14 @@ void Scene_Zelda::update() {
   sCamera();
   // sGUI();
   sRender();
+
+  // Play low hp sound of player
+  if (m_player->get<CHealth>().current <
+      (m_player->get<CHealth>().max / 2.0f) / 2.0f) {
+    if (playerLowHPSound.getStatus() != sf::Sound::Playing) {
+      playerLowHPSound.play();
+    }
+  }
 
   m_currentFrame++;
 }
@@ -423,6 +436,7 @@ void Scene_Zelda::sCollision() {
     }
   }
 
+  auto &playerInvinc = m_player->get<CInvincibility>().iframes;
   for (auto &entityNode : m_entityManager.getEntities("NPC")) {
     int &entityNodeInvinc = entityNode->get<CInvincibility>().iframes;
     for (auto &swordNode : m_entityManager.getEntities("sword")) {
@@ -436,7 +450,8 @@ void Scene_Zelda::sCollision() {
         if (overlap.x > 0 && overlap.y > 0) {
           if (entityNodeInvinc == 0) {
             entityNode->get<CHealth>().current -= 1;
-            entityNodeInvinc = 30; // 30 is count of frames
+	    npcHitSound.play();
+            entityNodeInvinc = 15; // 15 is count of frames
           }
         }
       }
@@ -446,14 +461,38 @@ void Scene_Zelda::sCollision() {
       if (entityNode->get<CHealth>().current == 0) {
 	auto entityNodeTransform = entityNode->get<CTransform>();
         entityNode->destroy();
-	destroyAnimationCreate(entityNodeTransform.pos);
+        destroyAnimationCreate(entityNodeTransform.pos);
+	npcDieSound.play();
       } else {
         entityNodeInvinc -= 1;
         if (entityNode->get<CHealth>().current == 0) {
           entityNode->destroy();
           auto entityNodeTransform = entityNode->get<CTransform>();
           destroyAnimationCreate(entityNodeTransform.pos);
+          npcDieSound.play();
         }
+      }
+    }
+    // collide npc with player
+    vec2 overlap = m_worldPhysics.GetOverlap(m_player, entityNode);
+    vec2 overlapPrev = m_worldPhysics.GetPreviousOverlap(m_player, entityNode);
+    if (overlap != vec2(0, 0)) {
+      if (overlap.x > 0 && overlap.y > 0) {
+        if (playerInvinc == 0 && m_player->get<CHealth>().current > 0) {
+	  playerHitSound.play();
+          m_player->get<CHealth>().current -= 1;
+          playerInvinc = 600; // 600 is count of frames
+        }
+      }
+    }
+    if (playerInvinc > 0) {
+      if (m_player->get<CHealth>().current == 0) {
+        playerDieSound.play();
+        playerInvinc = 0;
+        m_player->get<CHealth>().current = m_playerConfig.HEALTH;
+	m_player->get<CTransform>().pos = vec2(m_playerConfig.X, m_playerConfig.Y);
+      } else {
+        playerInvinc -= 1;
       }
     }
   }
