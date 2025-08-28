@@ -441,7 +441,14 @@ void Scene_Zelda::sCollision() {
     }
     // counting down invincibility timer till it will be 0 and npc can be attacked by player agen
     if (entityNodeInvinc > 0) {
-      entityNodeInvinc -= 1;
+      if (entityNode->get<CHealth>().current == 0) {
+        entityNode->destroy();
+      } else {
+        entityNodeInvinc -= 1;
+        if (entityNode->get<CHealth>().current == 0) {
+          entityNode->destroy();
+        }
+      }
     }
   }
 }
