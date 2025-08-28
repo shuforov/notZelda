@@ -465,6 +465,9 @@ void Scene_Zelda::sAnimation() {
       swapPlayerAnimationToStand();
     }
   }
+  for (auto &entityNode : m_entityManager.getEntities("NPC")) {
+    entityNode->get<CAnimation>().animation.update(false);
+  }
 }
 
 void Scene_Zelda::swapPlayerAnimationToStand() {
