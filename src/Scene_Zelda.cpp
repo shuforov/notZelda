@@ -102,7 +102,24 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
                                   tileAnimation.getSize(), tileMovement,
                                   tileBlockMovement);
       NPCNode->add<CHealth>(maxHealth, maxHealth);
-      NPCNode->add<CInvincibility>(0); // 0 is how mouch at current moment npc can be invicnible
+      NPCNode->add<CInvincibility>(
+          0); // 0 is how mouch at current moment npc can be invicnible
+      std::string behavior;
+      if (fileInput >> behavior) {
+        if (behavior == "Follow") {
+          int speedFollow;
+          fileInput >> speedFollow;
+          NPCNode->add<CFollowPlayer>(NPCPosition, speedFollow);
+        } else if (behavior == "Patrol") {
+          NPCNode->add<CPatrol>();
+          std::vector<vec2> &patrolPoints = NPCNode->get<CPatrol>().positions;
+          int x, y;
+          // Keep consuming pairs until line ends or file hits next keyword
+          while (fileInput.peek() != '\n' && fileInput >> x >> y) {
+            patrolPoints.push_back(vec2(x, y));
+          }
+        }
+      }
     }
   }
   spawnPlayer();
