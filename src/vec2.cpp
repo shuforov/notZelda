@@ -1,5 +1,5 @@
 #include <cmath>
-#include "vec2.h"
+#include "../include/vec2.h"
 
 
 float vec2::epsilon = 0.001f;
@@ -176,4 +176,11 @@ bool clockwise(vec2 lhs, vec2 rhs) {
 bool counterclockwise(vec2 lhs, vec2 rhs) {
     float cross = lhs.x * rhs.y - lhs.y * rhs.x;
     return cross >= 0;
+}
+
+vec2 vec2::normalizeToTarget(const vec2 &target) {
+  vec2 differenceVector = vec2(target.x - x, target.y - y);
+  float length = std::sqrt((differenceVector.x * differenceVector.x) +
+                           (differenceVector.y * differenceVector.y));
+  return vec2(differenceVector.x / length, differenceVector.y / length);
 }

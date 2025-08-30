@@ -37,6 +37,7 @@ public:
     [[nodiscard]] float length_squared() const;
 
     vec2 normalize();
+    vec2 normalizeToTarget(const vec2 &target);
 };
 
 class point2 {
@@ -93,5 +94,6 @@ float angle_degrees(vec2 lhs, vec2 rhs);
 bool clockwise(vec2 lhs, vec2 rhs);
 
 bool counterclockwise(vec2 lhs, vec2 rhs);
+
 
 #endif // VEC2_H

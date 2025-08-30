@@ -304,6 +304,13 @@ void Scene_Zelda::sMovement() {
                playerTransform.pos.y); // 32 is half size of sprite size of 64
     }
   }
+
+  // NPC movement
+  for (auto &entity : m_entityManager.getEntities("NPC")) {
+    auto &npcTransform = entity->get<CTransform>();
+    npcTransform.pos +=
+        npcTransform.velocity * entity->get<CFollowPlayer>().speed;
+  }
 }
 
 void Scene_Zelda::sGUI() {
@@ -405,6 +412,15 @@ void Scene_Zelda::sDoAction(const Action &action) {
 void Scene_Zelda::sAI() {
   // TODO: Implement enemy AI
   // Implement Follow behavior
+  for (auto npcNode : m_entityManager.getEntities("NPC")) {
+    vec2 npcNodePosition = npcNode->get<CTransform>().pos;
+    vec2 npcNodeNormalize =
+        npcNodePosition.normalizeToTarget(m_player->get<CTransform>().pos);
+    vec2 npcVelocity =
+        vec2(npcNodeNormalize.x * npcNode->get<CFollowPlayer>().speed,
+             npcNodeNormalize.y * npcNode->get<CFollowPlayer>().speed);
+    npcNode->get<CTransform>().velocity = npcVelocity;
+  }
   // Implement Patrol behavior
 }
 
