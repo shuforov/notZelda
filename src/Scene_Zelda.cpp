@@ -455,9 +455,18 @@ void Scene_Zelda::sCollision() {
     vec2 overlap = m_worldPhysics.GetOverlap(m_player, entityNode);
     vec2 overlapPrev = m_worldPhysics.GetPreviousOverlap(m_player, entityNode);
     bool entityBBBlockMove = entityNode->get<CBoundingBox>().blockMove;
+    std::string animationName =
+        entityNode->get<CAnimation>().animation.getName();
     if (overlap != vec2(0, 0)) {
       if (overlap.x > 0 && overlap.y > 0) {
-	if (entityBBBlockMove) {
+        if (animationName == "TileHeart") {
+          auto &playerHealth = m_player->get<CHealth>();
+          if (playerHealth.current < playerHealth.max) {
+            entityNode->destroy();
+            playerHealth.current = playerHealth.max;
+          }
+        }
+        if (entityBBBlockMove) {
           if (overlapPrev.x < overlap.x) {
             playerPosition.x = playerPrevPosition.x;
           }
