@@ -65,6 +65,13 @@ vec2 vec2::normalize() {
     return *this;
 }
 
+float vec2::distance(vec2 p) const {
+    // float dx = rhs.x - x;
+    // float dy = rhs.y - y;
+    // return std::sqrt(dx * dx + dy * dy);
+    return (p - *this).length();
+}
+
 float point2::epsilon = 0.001f;
 
 const point2 point2::kOrigin{0.0f, 0.0f};

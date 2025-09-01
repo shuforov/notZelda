@@ -38,6 +38,7 @@ public:
 
     vec2 normalize();
     vec2 normalizeToTarget(const vec2 &target);
+    float distance(vec2 p) const;
 };
 
 class point2 {

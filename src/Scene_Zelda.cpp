@@ -112,7 +112,12 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
           NPCNode->add<CFollowPlayer>(NPCPosition, speedFollow);
         } else if (behavior == "Patrol") {
           NPCNode->add<CPatrol>();
+          int speedNpc;
+	  int countOfPoints;
+          fileInput >> speedNpc;
+	  fileInput >> countOfPoints;
           std::vector<vec2> &patrolPoints = NPCNode->get<CPatrol>().positions;
+	  NPCNode->get<CPatrol>().speed = speedNpc;
           int x, y;
           // Keep consuming pairs until line ends or file hits next keyword
           while (fileInput.peek() != '\n' && fileInput >> x >> y) {
@@ -307,11 +312,65 @@ void Scene_Zelda::sMovement() {
 
   // NPC movement
   for (auto &entity : m_entityManager.getEntities("NPC")) {
-    auto &npcTransform = entity->get<CTransform>();
-    npcTransform.pos +=
-        npcTransform.velocity * entity->get<CFollowPlayer>().speed;
+    if (entity->has<CFollowPlayer>()) {
+      auto &npcTransform = entity->get<CTransform>();
+      npcTransform.pos +=
+          npcTransform.velocity * entity->get<CFollowPlayer>().speed;
+    } else if (entity->has<CPatrol>()) {
+      auto &npcPatrol = entity->get<CPatrol>();
+      auto pointPosition = npcPatrol.positions[npcPatrol.currentPosition];
+      auto &npcTransform = entity->get<CTransform>();
+      vec2 &npcTPosition = npcTransform.pos;
+      vec2 transformGridToVec2 =
+          gridToMidPixel(pointPosition.x, pointPosition.y, entity);
+      vec2 npcNodePosition = npcTransform.pos;
+      vec2 npcNodeNormalize =
+          npcNodePosition.normalizeToTarget(transformGridToVec2);
+      vec2 npcVelocity =
+          vec2(npcNodeNormalize.x * entity->get<CPatrol>().speed,
+               npcNodeNormalize.y * entity->get<CPatrol>().speed);
+      if (npcTransform.pos == transformGridToVec2) {
+	npcPatrolProcess(entity);
+      }
+      if (npcTPosition.distance(transformGridToVec2) < 3) {
+	npcPatrolProcess(entity);
+      }
+      npcTransform.velocity = npcVelocity;
+      npcTransform.pos += npcTransform.velocity * entity->get<CPatrol>().speed;
+    }
   }
 }
+
+void Scene_Zelda::npcPatrolProcess(std::shared_ptr<Entity> npcNode) {
+  auto &npcPatrol = npcNode->get<CPatrol>();
+  auto pointPosition = npcPatrol.positions[npcPatrol.currentPosition];
+  auto &npcTransform = npcNode->get<CTransform>();
+  vec2 &npcTPosition = npcTransform.pos;
+  vec2 transformGridToVec2 =
+      gridToMidPixel(pointPosition.x, pointPosition.y, npcNode);
+  vec2 npcNodePosition = npcTransform.pos;
+  vec2 npcNodeNormalize =
+      npcNodePosition.normalizeToTarget(transformGridToVec2);
+  vec2 npcVelocity = vec2(npcNodeNormalize.x * npcNode->get<CPatrol>().speed,
+                          npcNodeNormalize.y * npcNode->get<CPatrol>().speed);
+  if (npcPatrol.currentPosition < npcPatrol.positions.size() - 1) {
+    npcPatrol.currentPosition += 1;
+    pointPosition = npcPatrol.positions[npcPatrol.currentPosition];
+    transformGridToVec2 =
+        gridToMidPixel(pointPosition.x, pointPosition.y, npcNode);
+    npcNodeNormalize = npcNodePosition.normalizeToTarget(transformGridToVec2);
+    npcVelocity = vec2(npcNodeNormalize.x * npcNode->get<CPatrol>().speed,
+                       npcNodeNormalize.y * npcNode->get<CPatrol>().speed);
+  } else {
+    npcPatrol.currentPosition = 0;
+    pointPosition = npcPatrol.positions[npcPatrol.currentPosition];
+    transformGridToVec2 =
+        gridToMidPixel(pointPosition.x, pointPosition.y, npcNode);
+    npcNodeNormalize = npcNodePosition.normalizeToTarget(transformGridToVec2);
+    npcVelocity = vec2(npcNodeNormalize.x * npcNode->get<CPatrol>().speed,
+                       npcNodeNormalize.y * npcNode->get<CPatrol>().speed);
+  }
+}  
 
 void Scene_Zelda::sGUI() {
   ImGui::Begin("Scene Properties");
@@ -770,7 +829,7 @@ void Scene_Zelda::sRender() {
         // draw line between player and npc
         if (!player())
           continue;
-        if (entity->tag() == "npc") {
+        if (entity->tag() == "NPC") {
           auto &ePos = entity->get<CTransform>().pos;
           auto view = m_game->window().getView().getCenter();
           if (ePos.x >= view.x - (float)width() / 2.0 &&
@@ -791,8 +850,7 @@ void Scene_Zelda::sRender() {
       }
       if (entity->has<CPatrol>()) {
         for (auto p : entity->get<CPatrol>().positions) {
-          vec2 r = getRoomXY(entity->get<CTransform>().pos);
-          vec2 pos = getPosition(r.x, r.y, p.x, p.y);
+          vec2 pos = gridToMidPixel(p.x, p.y, entity);
           dot.setPosition(pos.x, pos.y);
           m_game->window().draw(dot);
         }

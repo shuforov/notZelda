@@ -88,6 +88,7 @@ protected:
     void swapPlayerAnimationToStand();
 
     void destroyAnimationCreate(vec2 position);
+    void npcPatrolProcess(std::shared_ptr<Entity> npcNode);
 
   public:
     Scene_Zelda(GameEngine *gameEngine, std::string &levelPath);
