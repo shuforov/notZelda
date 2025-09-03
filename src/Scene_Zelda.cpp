@@ -84,8 +84,9 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
       tileNode->add<CAnimation>(m_game->assets().getAnimation(entityName),
                                 true);
       vec2 tilePosition = gridToMidPixel(gridPos.x, gridPos.y, tileNode);
+      vec2 roomPosition = worldPositionRoom(roomPos);
       Animation tileAnimation = tileNode->get<CAnimation>().animation;
-      tileNode->add<CTransform>(tilePosition);
+      tileNode->add<CTransform>(roomPosition + tilePosition);
       tileNode->add<CBoundingBox>(tileAnimation.getSize(),
                                   tileAnimation.getSize(), tileMovement,
                                   tileBlockMovement);
@@ -96,8 +97,10 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
       NPCNode->add<CAnimation>(m_game->assets().getAnimation(entityName),
                                 true);
       vec2 NPCPosition = gridToMidPixel(gridPos.x, gridPos.y, NPCNode);
+      vec2 roomPosition = worldPositionRoom(roomPos);
       Animation tileAnimation = NPCNode->get<CAnimation>().animation;
-      NPCNode->add<CTransform>(NPCPosition);
+      NPCNode->add<CTransform>(roomPosition + NPCPosition);
+      auto npcPositionTest = NPCNode->get<CTransform>().pos;
       NPCNode->add<CBoundingBox>(tileAnimation.getSize(),
                                   tileAnimation.getSize(), tileMovement,
                                   tileBlockMovement);
@@ -109,7 +112,7 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
         if (behavior == "Follow") {
           int speedFollow;
           fileInput >> speedFollow;
-          NPCNode->add<CFollowPlayer>(NPCPosition, speedFollow);
+          NPCNode->add<CFollowPlayer>(NPCNode->get<CTransform>().pos, speedFollow);
         } else if (behavior == "Patrol") {
           NPCNode->add<CPatrol>();
           int speedNpc;
@@ -120,8 +123,11 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
 	  NPCNode->get<CPatrol>().speed = speedNpc;
           int x, y;
           // Keep consuming pairs until line ends or file hits next keyword
+	  vec2 transformCoordinates;
           while (fileInput.peek() != '\n' && fileInput >> x >> y) {
-            patrolPoints.push_back(vec2(x, y));
+	    vec2 transformPosition = gridToMidPixel(x, y, NPCNode);
+	    transformCoordinates = roomPosition + transformPosition;
+            patrolPoints.push_back(transformCoordinates);
           }
         }
       }
@@ -314,29 +320,16 @@ void Scene_Zelda::sMovement() {
   for (auto &entity : m_entityManager.getEntities("NPC")) {
     if (entity->has<CFollowPlayer>()) {
       auto &npcTransform = entity->get<CTransform>();
+      vec2 npcNodeNormalize =
+          npcTransform.pos.normalizeToTarget(m_player->get<CTransform>().pos);
+      vec2 npcVelocity =
+          vec2(npcNodeNormalize.x * entity->get<CFollowPlayer>().speed,
+               npcNodeNormalize.y * entity->get<CFollowPlayer>().speed);
+      entity->get<CTransform>().velocity = npcVelocity;
       npcTransform.pos +=
           npcTransform.velocity * entity->get<CFollowPlayer>().speed;
     } else if (entity->has<CPatrol>()) {
-      auto &npcPatrol = entity->get<CPatrol>();
-      auto pointPosition = npcPatrol.positions[npcPatrol.currentPosition];
-      auto &npcTransform = entity->get<CTransform>();
-      vec2 &npcTPosition = npcTransform.pos;
-      vec2 transformGridToVec2 =
-          gridToMidPixel(pointPosition.x, pointPosition.y, entity);
-      vec2 npcNodePosition = npcTransform.pos;
-      vec2 npcNodeNormalize =
-          npcNodePosition.normalizeToTarget(transformGridToVec2);
-      vec2 npcVelocity =
-          vec2(npcNodeNormalize.x * entity->get<CPatrol>().speed,
-               npcNodeNormalize.y * entity->get<CPatrol>().speed);
-      if (npcTransform.pos == transformGridToVec2) {
-	npcPatrolProcess(entity);
-      }
-      if (npcTPosition.distance(transformGridToVec2) < 3) {
-	npcPatrolProcess(entity);
-      }
-      npcTransform.velocity = npcVelocity;
-      npcTransform.pos += npcTransform.velocity * entity->get<CPatrol>().speed;
+      npcPatrolProcess(entity);
     }
   }
 }
@@ -345,32 +338,41 @@ void Scene_Zelda::npcPatrolProcess(std::shared_ptr<Entity> npcNode) {
   auto &npcPatrol = npcNode->get<CPatrol>();
   auto pointPosition = npcPatrol.positions[npcPatrol.currentPosition];
   auto &npcTransform = npcNode->get<CTransform>();
-  vec2 &npcTPosition = npcTransform.pos;
-  vec2 transformGridToVec2 =
-      gridToMidPixel(pointPosition.x, pointPosition.y, npcNode);
-  vec2 npcNodePosition = npcTransform.pos;
-  vec2 npcNodeNormalize =
-      npcNodePosition.normalizeToTarget(transformGridToVec2);
-  vec2 npcVelocity = vec2(npcNodeNormalize.x * npcNode->get<CPatrol>().speed,
-                          npcNodeNormalize.y * npcNode->get<CPatrol>().speed);
-  if (npcPatrol.currentPosition < npcPatrol.positions.size() - 1) {
-    npcPatrol.currentPosition += 1;
-    pointPosition = npcPatrol.positions[npcPatrol.currentPosition];
-    transformGridToVec2 =
-        gridToMidPixel(pointPosition.x, pointPosition.y, npcNode);
-    npcNodeNormalize = npcNodePosition.normalizeToTarget(transformGridToVec2);
-    npcVelocity = vec2(npcNodeNormalize.x * npcNode->get<CPatrol>().speed,
-                       npcNodeNormalize.y * npcNode->get<CPatrol>().speed);
-  } else {
-    npcPatrol.currentPosition = 0;
-    pointPosition = npcPatrol.positions[npcPatrol.currentPosition];
-    transformGridToVec2 =
-        gridToMidPixel(pointPosition.x, pointPosition.y, npcNode);
-    npcNodeNormalize = npcNodePosition.normalizeToTarget(transformGridToVec2);
-    npcVelocity = vec2(npcNodeNormalize.x * npcNode->get<CPatrol>().speed,
-                       npcNodeNormalize.y * npcNode->get<CPatrol>().speed);
+  vec2 npcVelocity;
+  vec2 npcNodeNormalize;
+  if (npcTransform.pos == vec2(pointPosition.x, pointPosition.y)) {
+    if (npcPatrol.currentPosition < npcPatrol.positions.size() - 1) {
+      npcPatrol.currentPosition += 1;
+      pointPosition = npcPatrol.positions[npcPatrol.currentPosition];
+      npcNodeNormalize =
+          npcTransform.pos.normalizeToTarget(vec2(pointPosition));
+      npcVelocity = vec2(npcNodeNormalize.x * npcNode->get<CPatrol>().speed,
+                         npcNodeNormalize.y * npcNode->get<CPatrol>().speed);
+      npcTransform.velocity = npcVelocity;
+    } else {
+      npcPatrol.currentPosition = 0;
+      pointPosition = npcPatrol.positions[npcPatrol.currentPosition];
+      npcNodeNormalize =
+          npcTransform.pos.normalizeToTarget(vec2(pointPosition));
+      npcVelocity = vec2(npcNodeNormalize.x * npcNode->get<CPatrol>().speed,
+                         npcNodeNormalize.y * npcNode->get<CPatrol>().speed);
+      npcTransform.velocity = npcVelocity;
+    }
   }
-}  
+  if (npcTransform.pos.distance(vec2(pointPosition)) < 3) {
+    if (npcPatrol.currentPosition < npcPatrol.positions.size() - 1) {
+      npcPatrol.currentPosition += 1;
+    } else {
+      npcPatrol.currentPosition = 0;
+    }
+    pointPosition = npcPatrol.positions[npcPatrol.currentPosition];
+    npcNodeNormalize = npcTransform.pos.normalizeToTarget(vec2(pointPosition));
+    npcVelocity = vec2(npcNodeNormalize.x * npcNode->get<CPatrol>().speed,
+                       npcNodeNormalize.y * npcNode->get<CPatrol>().speed);
+    npcTransform.velocity = npcVelocity;
+  }
+  npcTransform.pos += npcTransform.velocity * npcNode->get<CPatrol>().speed;
+}
 
 void Scene_Zelda::sGUI() {
   ImGui::Begin("Scene Properties");
@@ -471,15 +473,7 @@ void Scene_Zelda::sDoAction(const Action &action) {
 void Scene_Zelda::sAI() {
   // TODO: Implement enemy AI
   // Implement Follow behavior
-  for (auto npcNode : m_entityManager.getEntities("NPC")) {
-    vec2 npcNodePosition = npcNode->get<CTransform>().pos;
-    vec2 npcNodeNormalize =
-        npcNodePosition.normalizeToTarget(m_player->get<CTransform>().pos);
-    vec2 npcVelocity =
-        vec2(npcNodeNormalize.x * npcNode->get<CFollowPlayer>().speed,
-             npcNodeNormalize.y * npcNode->get<CFollowPlayer>().speed);
-    npcNode->get<CTransform>().velocity = npcVelocity;
-  }
+
   // Implement Patrol behavior
 }
 
@@ -850,8 +844,7 @@ void Scene_Zelda::sRender() {
       }
       if (entity->has<CPatrol>()) {
         for (auto p : entity->get<CPatrol>().positions) {
-          vec2 pos = gridToMidPixel(p.x, p.y, entity);
-          dot.setPosition(pos.x, pos.y);
+          dot.setPosition(p.x, p.y);
           m_game->window().draw(dot);
         }
       }
@@ -959,4 +952,9 @@ vec2 Scene_Zelda::gridToMidPixel(float gridX, float gridY,
   vec2 result = vec2((positionByGridX + spriteSize.x / 2),
                      (positionByGridY + spriteSize.y / 2));
   return result;
+}
+
+vec2 Scene_Zelda::worldPositionRoom(vec2 roomCoordinates) {
+  sf::Vector2 windowSize = m_game->window().getSize();
+  return vec2(roomCoordinates.x * windowSize.x, roomCoordinates.y * windowSize.y);
 }

@@ -89,6 +89,7 @@ protected:
 
     void destroyAnimationCreate(vec2 position);
     void npcPatrolProcess(std::shared_ptr<Entity> npcNode);
+    vec2 worldPositionRoom(vec2 roomCoordinates);
 
   public:
     Scene_Zelda(GameEngine *gameEngine, std::string &levelPath);
