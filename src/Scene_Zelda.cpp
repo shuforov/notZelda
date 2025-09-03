@@ -370,6 +370,12 @@ void Scene_Zelda::npcPatrolProcess(std::shared_ptr<Entity> npcNode) {
     npcVelocity = vec2(npcNodeNormalize.x * npcNode->get<CPatrol>().speed,
                        npcNodeNormalize.y * npcNode->get<CPatrol>().speed);
     npcTransform.velocity = npcVelocity;
+  } else if (npcTransform.pos.distance(vec2(pointPosition)) > 3) {
+    pointPosition = npcPatrol.positions[npcPatrol.currentPosition];
+    npcNodeNormalize = npcTransform.pos.normalizeToTarget(vec2(pointPosition));
+    npcVelocity = vec2(npcNodeNormalize.x * npcNode->get<CPatrol>().speed,
+                       npcNodeNormalize.y * npcNode->get<CPatrol>().speed);
+    npcTransform.velocity = npcVelocity;
   }
   npcTransform.pos += npcTransform.velocity * npcNode->get<CPatrol>().speed;
 }
