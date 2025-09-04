@@ -524,6 +524,16 @@ void Scene_Zelda::sCollision() {
             entityNode->destroy();
             playerHealth.current = playerHealth.max;
           }
+        } else if (animationName == "TileStair") {
+          for (auto &entityTileNode : m_entityManager.getEntities("Tile")) {
+            std::string animationTileName =
+                entityTileNode->get<CAnimation>().animation.getName();
+            if (animationTileName == "TileBlack") {
+              auto entityTileNodePostion =
+                  entityTileNode->get<CTransform>().pos;
+              m_player->get<CTransform>().pos = entityTileNodePostion;
+            }
+          }
         }
         if (entityBBBlockMove) {
           if (overlapPrev.x < overlap.x) {
