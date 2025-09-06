@@ -39,9 +39,22 @@ bool Physics::IsInside(const vec2 &pos, const std::shared_ptr<Entity> &entity) {
     return false;
 }
 
-Intersect Physics::LineIntersect(const vec2 &a, const vec2 &b, const vec2 &c, const vec2 &d) {
-    // Student TODO
-    return {false, vec2(0, 0)};
+Intersect Physics::LineIntersect(const vec2 &a, const vec2 &b, const vec2 &c,
+                                 const vec2 &d) {
+  // Example: a is start point of ray and b is end ray point (to player) and c
+  // is start line intersect and d is end of line intersect
+  // LineIntersect(vec2(2,3), vec2(9,8), vec2(2,9), vec2(9, 4)); This should
+  // return true(1) and value is somwhere in vec(6.2,6)
+  vec2 r = (b - a);
+  vec2 s = (d - c);
+  float rxs = r.x * s.y - r.y * s.x; // it is cross product
+  vec2 cma = c - a;
+  float t = (cma.x * s.y - cma.y * s.x) / rxs;
+  float u = (cma.x * r.y - cma.y * r.x) / rxs;
+  if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+    return {true, vec2(a.x + t * r.x, a.y + t * r.y)};
+  }
+  return {false, vec2(0, 0)};
 }
 
 bool Physics::EntityIntersect(const vec2 &a, const vec2 &b, const std::shared_ptr<Entity> &entity) {

@@ -16,6 +16,18 @@
 #include "../include/Scene_Zelda.h"
 #include "../include/Scene_Menu.h"
 
+struct lineOfView {
+  vec2 pointA; // start point
+  vec2 pointB; // end point
+};
+
+struct rectangleLineSide {
+  lineOfView left;
+  lineOfView up;
+  lineOfView right;
+  lineOfView down;
+};
+
 Scene_Zelda::Scene_Zelda(GameEngine *game, std::string &levelPath)
     : Scene(game), m_levelPath(levelPath) {
   init(m_levelPath);
@@ -102,8 +114,8 @@ void Scene_Zelda::loadLevel(const std::string &fileName) {
       NPCNode->add<CTransform>(roomPosition + NPCPosition);
       auto npcPositionTest = NPCNode->get<CTransform>().pos;
       NPCNode->add<CBoundingBox>(tileAnimation.getSize(),
-                                  tileAnimation.getSize(), tileMovement,
-                                  tileBlockMovement);
+                                 tileAnimation.getSize(), tileMovement,
+                                 tileBlockMovement);
       NPCNode->add<CHealth>(maxHealth, maxHealth);
       NPCNode->add<CInvincibility>(
           0); // 0 is how mouch at current moment npc can be invicnible
@@ -320,14 +332,18 @@ void Scene_Zelda::sMovement() {
   for (auto &entity : m_entityManager.getEntities("NPC")) {
     if (entity->has<CFollowPlayer>()) {
       auto &npcTransform = entity->get<CTransform>();
-      vec2 npcNodeNormalize =
-          npcTransform.pos.normalizeToTarget(m_player->get<CTransform>().pos);
-      vec2 npcVelocity =
-          vec2(npcNodeNormalize.x * entity->get<CFollowPlayer>().speed,
-               npcNodeNormalize.y * entity->get<CFollowPlayer>().speed);
-      entity->get<CTransform>().velocity = npcVelocity;
-      npcTransform.pos +=
-          npcTransform.velocity * entity->get<CFollowPlayer>().speed;
+      if (entity->get<CFollowPlayer>().playerVisible) {
+        vec2 npcNodeNormalize =
+            npcTransform.pos.normalizeToTarget(m_player->get<CTransform>().pos);
+        vec2 npcVelocity =
+            vec2(npcNodeNormalize.x * entity->get<CFollowPlayer>().speed,
+                 npcNodeNormalize.y * entity->get<CFollowPlayer>().speed);
+        entity->get<CTransform>().velocity = npcVelocity;
+        npcTransform.pos +=
+            npcTransform.velocity * entity->get<CFollowPlayer>().speed;
+      } else {
+        npcTransform.velocity = vec2(0, 0);
+      }
     } else if (entity->has<CPatrol>()) {
       npcPatrolProcess(entity);
     }
@@ -479,8 +495,73 @@ void Scene_Zelda::sDoAction(const Action &action) {
 void Scene_Zelda::sAI() {
   // TODO: Implement enemy AI
   // Implement Follow behavior
+  for (auto &npcNode : m_entityManager.getEntities("NPC")) {
+    if (npcNode->has<CFollowPlayer>()) {
+      lineOfView rayCast;
+      rayCast.pointA = npcNode->get<CTransform>().pos;
+      rayCast.pointB = m_player->get<CTransform>().pos;
+      npcNode->get<CFollowPlayer>().playerVisible = true;
+      for (auto &entity : m_entityManager.getEntities("Tile")) {
+        auto cBBTile = entity->get<CBoundingBox>();
+	auto tileTransform = entity->get<CTransform>();
+        if (cBBTile.blockVision) {
+          rectangleLineSide rectangleLines;
+          lineOfView leftSideLine;
+          lineOfView upSideLine;
+          lineOfView rightSideLine;
+          lineOfView downSideLine;
+          leftSideLine.pointA = vec2(tileTransform.pos.x - cBBTile.halfSize.x,
+                                     tileTransform.pos.y - cBBTile.halfSize.y);
+          leftSideLine.pointB = vec2(tileTransform.pos.x - cBBTile.halfSize.x,
+                                     tileTransform.pos.y + cBBTile.halfSize.y);
+          upSideLine.pointA = vec2(tileTransform.pos.x - cBBTile.halfSize.x,
+                                   tileTransform.pos.y - cBBTile.halfSize.y);
+          upSideLine.pointB = vec2(tileTransform.pos.x + cBBTile.halfSize.x,
+                                   tileTransform.pos.y - cBBTile.halfSize.y);
+          rightSideLine.pointA = vec2(tileTransform.pos.x + cBBTile.halfSize.x,
+                                      tileTransform.pos.y - cBBTile.halfSize.y);
+          rightSideLine.pointB = vec2(tileTransform.pos.x + cBBTile.halfSize.x,
+                                      tileTransform.pos.y + cBBTile.halfSize.y);
+          downSideLine.pointA = vec2(tileTransform.pos.x - cBBTile.halfSize.x,
+                                     tileTransform.pos.y + cBBTile.halfSize.y);
+          downSideLine.pointB = vec2(tileTransform.pos.x + cBBTile.halfSize.x,
+                                     tileTransform.pos.y + cBBTile.halfSize.y);
+          rectangleLines.up = upSideLine;
+          rectangleLines.down = downSideLine;
+          rectangleLines.left = leftSideLine;
+          rectangleLines.right = rightSideLine;
 
-  // Implement Patrol behavior
+          Intersect leftLineIntresect;
+          Intersect upLineIntersect;
+          Intersect rightLineIntersect;
+          Intersect downLineIntersect;
+          
+          leftLineIntresect =
+              Physics::LineIntersect(rayCast.pointA, rayCast.pointB,
+                                     leftSideLine.pointA, leftSideLine.pointB);
+          upLineIntersect =
+              Physics::LineIntersect(rayCast.pointA, rayCast.pointB,
+                                     upSideLine.pointA, upSideLine.pointB);
+          rightLineIntersect = Physics::LineIntersect(
+              rayCast.pointA, rayCast.pointB, rightSideLine.pointA,
+              rightSideLine.pointB);
+          downLineIntersect =
+              Physics::LineIntersect(rayCast.pointA, rayCast.pointB,
+                                     downSideLine.pointA, downSideLine.pointB);
+          if (leftLineIntresect.intersect) {
+            npcNode->get<CFollowPlayer>().playerVisible = false;
+          } else if (upLineIntersect.intersect) {
+            npcNode->get<CFollowPlayer>().playerVisible = false;
+          } else if (rightLineIntersect.intersect) {
+            npcNode->get<CFollowPlayer>().playerVisible = false;
+          } else if (downLineIntersect.intersect) {
+            npcNode->get<CFollowPlayer>().playerVisible = false;
+          }
+        }
+      }
+    }
+    // Implement Patrol behavior
+  }
 }
 
 void Scene_Zelda::sStatus() {

@@ -129,6 +129,7 @@ class CFollowPlayer : public Component {
 public:
     vec2 home = {0.0f, 0.0f};
     float speed = 0.0f;
+    bool playerVisible = false;
 
     CFollowPlayer() = default;
 
